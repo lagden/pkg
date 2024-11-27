@@ -1,86 +1,116 @@
 import process from 'node:process'
-import { setTimeout } from 'node:timers/promises'
 import * as p from '@clack/prompts'
 import color from 'kleur'
+import { findUp } from 'find-up-simple'
+import { getVersions, loadJSON, writeData } from './lib.ts'
 
-function onCancel() {
-	p.cancel('Operation cancelled.')
-	process.exit(0)
+interface PackageJSON {
+	name: string
+	version: string
+	dependencies: Record<string, string>
+	devDependencies: Record<string, string>
+	scripts: Record<string, string>
+	[key: string]: any
 }
 
-async function main() {
+interface PackageGroupInfo {
+	name: string
+	current: string
+	version: string
+	prop: string
+}
+
+interface PackageGroup {
+	packages?: PackageGroupInfo[]
+}
+
+interface GroupsResponse {
+	[key: string]: PackageGroup
+}
+
+const spin = p.spinner()
+
+function onCancel(msg: string = 'Operation cancelled.', code: number = 0): void {
+	p.cancel(msg)
+	process.exit(code)
+}
+
+async function main(): Promise<void> {
 	console.clear()
 
-	await setTimeout(1000)
+	p.intro(`${color.bgCyan(color.black(' package.json '))}`)
 
-	p.intro(`${color.bgCyan(color.black(' changesets '))}`)
+	spin.start()
+	spin.message('Looking for file...')
 
-	const changeset = await p.group(
+	const pkgFile: string | undefined = await findUp('package.json')
+
+	spin.stop('File found.')
+
+	if (pkgFile === undefined) {
+		return onCancel('package.json not found', 1)
+	}
+
+	spin.start()
+	spin.message('Loading data...')
+
+	const pkgData: PackageJSON = await loadJSON(pkgFile)
+	const options: Record<string, any> = {}
+	const props: string[] = ['dependencies', 'devDependencies']
+	const promises: Promise<{ data: any; prop: any } | undefined>[] = []
+
+	for (const prop of props) {
+		if (pkgData[prop]) {
+			promises.push(getVersions(pkgData[prop], prop))
+		}
+	}
+
+	for await (const result of promises) {
+		if (result?.data) {
+			const { prop, data } = result
+			options[prop] = data
+		}
+	}
+
+	spin.stop('Done.')
+
+	const optsKey: string[] = Object.keys(options)
+	const intersection = props.filter((value) => optsKey.includes(value))
+	if (intersection.length === 0) {
+		return onCancel('There are no dependencies or devDependencies.')
+	}
+
+	const response: any = await p.group(
 		{
 			packages: () =>
 				p.groupMultiselect({
-					message: 'Which packages would you like to include?',
-					options: {
-						'changed packages': [
-							{ value: '@scope/a' },
-							{ value: '@scope/b' },
-							{ value: '@scope/c' },
-						],
-						'unchanged packages': [
-							{ value: '@scope/x' },
-							{ value: '@scope/y' },
-							{ value: '@scope/z' },
-						],
-					},
+					message: 'Which packages would you like to update version?',
+					options,
+					required: false,
 				}),
-			major: ({ results }) => {
-				const packages = results.packages ?? []
-				return p.multiselect({
-					message: `Which packages should have a ${color.red('major')} bump?`,
-					options: packages.map((value) => ({ value })),
-					required: false,
-				})
-			},
-			minor: ({ results }) => {
-				const packages = results.packages ?? []
-				const major = Array.isArray(results.major) ? results.major : []
-				const possiblePackages = packages.filter((pkg) => !major.includes(pkg))
-				if (possiblePackages.length === 0) return
-				return p.multiselect({
-					message: `Which packages should have a ${color.yellow('minor')} bump?`,
-					options: possiblePackages.map((value) => ({ value })),
-					required: false,
-				})
-			},
-			patch: async ({ results }) => {
-				const packages = results.packages ?? []
-				const major = Array.isArray(results.major) ? results.major : []
-				const minor = Array.isArray(results.minor) ? results.minor : []
-				const possiblePackages = packages.filter(
-					(pkg) => !major.includes(pkg) && !minor.includes(pkg),
-				)
-				if (possiblePackages.length === 0) return
-				let note = possiblePackages.join(color.dim(', '))
-
-				p.log.step(`These packages will have a ${color.green('patch')} bump.\n${color.dim(note)}`)
-				return possiblePackages
-			},
 		},
 		{
-			onCancel,
+			onCancel: () => onCancel(),
 		},
 	)
 
-	const message = await p.text({
-		placeholder: 'Summary',
-		message: 'Please enter a summary for this change',
-	})
-
-	if (p.isCancel(message)) {
-		return onCancel()
+	const groups: GroupsResponse = {}
+	if (response?.packages) {
+		groups.packages = response.packages
+		if (Array.isArray(groups?.packages)) {
+			for (const { name, prop, version } of groups.packages) {
+				pkgData[prop][name] = version
+			}
+		}
 	}
 
-	p.outro(`Changeset added! ${color.underline(color.cyan('.changeset/orange-crabs-sing.md'))}`)
+	try {
+		await writeData(pkgFile, pkgData)
+	} catch (error: any) {
+		return onCancel(error.message, 1)
+	}
+
+	p.outro(`File updated! ${color.underline(color.cyan(pkgFile))}`)
 }
 
 main().catch(console.error)
