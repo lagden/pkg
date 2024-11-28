@@ -4,7 +4,7 @@
 	"license": "MIT",
 	"exports": {
 		".": "./src/mod.ts",
-		"./cli.ts": "./src/cli.ts"
+		"./cli": "./src/cli.ts"
 	},
 	"imports": {
 		"@clack/prompts": "npm:@clack/prompts@0.8.2",
