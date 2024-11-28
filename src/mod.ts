@@ -14,7 +14,23 @@ function onCancel(msg: string = 'Operation cancelled.', code: number = 0): void 
 	process.exit(code) // Exit process with given code
 }
 
-// Main function to run the script
+/**
+ * Main function to run the CLI
+ *
+ * This module is a command-line interface tool designed to help
+ * developers manage their project dependencies more efficiently.
+ * It scans your package.json file and checks for available updates
+ * to your npm packages, making it easy to keep your projects up-to-date
+ * with the latest versions.
+ *
+ * ```ts
+ * import main from "@luca/cases";
+ *
+ * // Execute main function and handle errors
+ * main().catch(console.error)
+ * ```
+ * @module
+ */
 async function main(): Promise<void> {
 	console.clear() // Clear the console for better readability
 
@@ -91,5 +107,4 @@ async function main(): Promise<void> {
 	return onCancel('Nothing was done.', 0) // Inform user if no updates were made
 }
 
-// Execute main function and handle errors
-main().catch(console.error)
+export default main

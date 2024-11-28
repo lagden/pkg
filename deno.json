@@ -1,8 +1,11 @@
 {
 	"name": "@tadashi/pkg-cli",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
-	"exports": "./src/mod.ts",
+	"exports": {
+		".": "./src/mod.ts",
+		"./cli.ts": "./src/cli.ts"
+	},
 	"imports": {
 		"@clack/prompts": "npm:@clack/prompts@0.8.2",
 		"find-up-simple": "npm:find-up-simple@1.0.0",
@@ -19,15 +22,15 @@
 		]
 	},
 	"tasks": {
-		"build-pkg-apple-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-apple.run --target x86_64-apple-darwin src/mod.ts",
-		"build-pkg-apple-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-apple.run --target aarch64-apple-darwin src/mod.ts",
-		"build-pkg-linux-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-linux.run --target x86_64-unknown-linux-gnu src/mod.ts",
-		"build-pkg-linux-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-linux.run --target aarch64-unknown-linux-gnu src/mod.ts",
-		"build-pkg-windows-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-pc-windows.exe --target x86_64-pc-windows-msvc --icon ./npm.ico src/mod.ts",
+		"build-pkg-apple-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-apple.run --target x86_64-apple-darwin src/cli.ts",
+		"build-pkg-apple-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-apple.run --target aarch64-apple-darwin src/cli.ts",
+		"build-pkg-linux-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-linux.run --target x86_64-unknown-linux-gnu src/cli.ts",
+		"build-pkg-linux-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-linux.run --target aarch64-unknown-linux-gnu src/cli.ts",
+		"build-pkg-windows-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-pc-windows.exe --target x86_64-pc-windows-msvc --icon ./npm.ico src/cli.ts",
 		"build-pkg": "deno task build-pkg-apple-x86 && deno task build-pkg-apple-arm && deno task build-pkg-linux-x86 && deno task build-pkg-linux-arm && deno task build-pkg-windows-x86",
 		"build": "deno task build-pkg",
 		"clean": "rm -rf bin",
-		"start": "deno run -WER --allow-run src/mod.ts",
+		"start": "deno run -WER --allow-run src/cli.ts",
 		"test": "deno test -WERS --allow-run"
 	},
 	"test": {

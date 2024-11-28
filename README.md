@@ -1,13 +1,20 @@
 # @tadashi/pkg-cli
 
-Update your packages with mastery.
+Update your `package.json` with mastery.
 
 View on JSR: https://jsr.io/@tadashi/pkg-cli
 
 ## Install
 
 ```
-$ deno add jsr:@tadashi/pkg-cli
+$ deno install --global -WERS --allow-run --name pkg-cli jsr:@tadashi/pkg-cli/cli.ts
+```
+
+or
+
+```
+$ rm ~/.deno/bin/pkg-cli
+$ deno compile -WER --allow-run -o ~/.deno/bin/pkg-cli jsr:@tadashi/pkg-cli/cli.ts
 ```
 
 ## Buy Me a Coffee
