@@ -17,14 +17,14 @@ function onCancel(msg: string = 'Operation cancelled.', code: number = 0): void 
 /**
  * Main function to run the CLI
  *
- * This module is a command-line interface tool designed to help
+ * It is a command-line interface tool designed to help
  * developers manage their project dependencies more efficiently.
  * It scans your package.json file and checks for available updates
  * to your npm packages, making it easy to keep your projects up-to-date
  * with the latest versions.
  *
  * ```ts
- * import main from "@luca/cases";
+ * import main from "jsr:@tadashi/pkg-cli";
  *
  * // Execute main function and handle errors
  * main().catch(console.error)
