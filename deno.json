@@ -12,12 +12,9 @@
 		"include": [
 			"LICENSE",
 			"README.md",
-			"src/**/*.ts",
-			"bin/"
+			"src/**/*.ts"
 		],
 		"exclude": [
-			"!bin/",
-			"!dist/",
 			"test/"
 		]
 	},
@@ -26,7 +23,7 @@
 		"build-pkg-apple-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-apple.run --target aarch64-apple-darwin src/mod.ts",
 		"build-pkg-linux-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-linux.run --target x86_64-unknown-linux-gnu src/mod.ts",
 		"build-pkg-linux-arm": "deno compile -WER --allow-run -o bin/pkg.aarch64-linux.run --target aarch64-unknown-linux-gnu src/mod.ts",
-		"build-pkg-windows-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-pc-windows.exe --target x86_64-pc-windows-msvc src/mod.ts",
+		"build-pkg-windows-x86": "deno compile -WER --allow-run -o bin/pkg.x86_64-pc-windows.exe --target x86_64-pc-windows-msvc --icon ./npm.ico src/mod.ts",
 		"build-pkg": "deno task build-pkg-apple-x86 && deno task build-pkg-apple-arm && deno task build-pkg-linux-x86 && deno task build-pkg-linux-arm && deno task build-pkg-windows-x86",
 		"build": "deno task build-pkg",
 		"clean": "rm -rf bin",

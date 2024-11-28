@@ -37,10 +37,6 @@ jobs:
       - name: Test
         run: deno task test
 
-      - name: build
-        if: startsWith(github.ref, 'refs/tags/')
-        run: deno task clean && deno task build
-
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
         run: deno publish
