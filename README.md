@@ -7,15 +7,19 @@ View on JSR: https://jsr.io/@tadashi/pkg-cli
 ## Install
 
 ```
-deno install --global -WERS --allow-run --name pkg-cli jsr:@tadashi/pkg-cli@{version}/cli
+deno install --global -WER --allow-run=/bin/sh --name pkg-cli jsr:@tadashi/pkg-cli@{version}/cli -f
 ```
 
 or
 
 ```
 rm ~/.deno/bin/pkg-cli
-deno compile -WER --allow-run -o ~/.deno/bin/pkg-cli jsr:@tadashi/pkg-cli@{version}/cli
+deno compile -WER --allow-run=/bin/sh -o ~/.deno/bin/pkg-cli jsr:@tadashi/pkg-cli@{version}/cli
 ```
+
+> [!NOTE]\
+> Replace the `{version}` tag with the desired version.\
+> Example: `jsr:@tadashi/pkg-cli@1.0.4/cli`
 
 ## Buy Me a Coffee
 
