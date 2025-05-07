@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises' // Importing readFile for reading from files with promises
-import { pathToFileURL } from 'node:url' // Importing pathToFileURL to convert file paths to URL format
+import { pathToFileURL, URL } from 'node:url' // Importing pathToFileURL to convert file paths to URL format
 import { exec as execCallback } from 'node:child_process' // Importing exec for executing shell commands, aliased as execCallback
 import { promisify } from 'node:util' // Importing promisify to convert callback-based functions into promise-based
-import { IPackageGroupInfo } from './interfaces.ts' // Importing IPackageGroupInfo interface for strong typing
+import type { IPackageGroupInfo, IPackageOption, JSONObject, PackageAndVersion, VersionsResponse } from './interfaces.ts' // Importing IPackageGroupInfo interface for strong typing
 
 // Promisify the exec function to enable async/await syntax for running shell commands
 const exec = promisify(execCallback)
@@ -27,16 +27,23 @@ const toURL = (pathToURL: URLInput): URL => {
  * @param prop - A property to associate with the package information.
  * @returns A promise that resolves to an array of settled promises containing package info or undefined.
  */
-function getLatestVersionPackage(data: Record<string, string>, prop: string): Promise<Array<PromiseSettledResult<IPackageGroupInfo | undefined>>> {
-	if (!data) return Promise.resolve([])
-
+async function getLatestVersionPackage(data: PackageAndVersion, prop: string): Promise<IPackageGroupInfo[]> {
 	const entries = Object.entries(data)
+	const results = await Promise.allSettled(
+		entries.map(async ([name, current]) => {
+			try {
+				const { stdout } = await exec(`npm show ${name} version`)
+				const version = stdout.trim()
+				return version && current !== version ? { name, current, version, prop } as IPackageGroupInfo : undefined
+			} catch {
+				return undefined
+			}
+		}),
+	)
 
-	return Promise.allSettled(entries.map(async ([name, current]) => {
-		const { stdout } = await exec(`npm show ${name} version`)
-		const version = stdout.trim()
-		return version && current !== version ? { name, current, version, prop } : undefined
-	}))
+	return results
+		.filter((result): result is PromiseFulfilledResult<IPackageGroupInfo> => result.status === 'fulfilled')
+		.map((result) => result.value)
 }
 
 /**
@@ -47,7 +54,7 @@ function getLatestVersionPackage(data: Record<string, string>, prop: string): Pr
  * @returns The truncated string if it exceeds maxLength; otherwise, the original string.
  */
 const truncateString = (str: string, maxLength: number): string => (
-	str.length > maxLength ? str.slice(0, maxLength - 3) + '...' : str
+	str.length > maxLength ? `${str.slice(0, maxLength - 3)}...` : str
 )
 
 /**
@@ -56,13 +63,13 @@ const truncateString = (str: string, maxLength: number): string => (
  * @param collection - An array of settled promise results containing package info.
  * @returns An array of objects formatted for display, containing 'value' and 'label'.
  */
-const buildOpts = (collection: PromiseSettledResult<IPackageGroupInfo | undefined>[]): Array<{ value: IPackageGroupInfo; label: string }> => {
+const buildOpts = (collection: IPackageGroupInfo[]): IPackageOption[] => {
 	return collection
-		.filter((obj): obj is PromiseFulfilledResult<IPackageGroupInfo> => obj.status === 'fulfilled' && obj.value !== undefined)
-		.map((obj) => {
-			const { name, current, version } = obj.value // No need for non-null assertion now
+		.filter(Boolean)
+		.map((value: IPackageGroupInfo) => {
+			const { name, current, version } = value
 			const label = `${truncateString(name, 30).padEnd(35, ' ')}${current.padEnd(10, ' ')}→ ${version}`
-			return { value: obj.value, label }
+			return { value, label } as IPackageOption
 		})
 }
 
@@ -73,9 +80,9 @@ const buildOpts = (collection: PromiseSettledResult<IPackageGroupInfo | undefine
  * @param prop - Additional property related to the packages.
  * @returns An object with structured data for display or undefined if no data is available.
  */
-export async function getVersions(data: Record<string, string>, prop: string): Promise<{ data: any; prop: string } | undefined> {
-	const response = await getLatestVersionPackage(data, prop)
-	return Array.isArray(response) ? { data: buildOpts(response), prop } : undefined
+export async function getVersions(data: PackageAndVersion, prop: string): Promise<VersionsResponse> {
+	const response: IPackageGroupInfo[] = await getLatestVersionPackage(data, prop)
+	return { prop, data: buildOpts(response) }
 }
 
 /**
@@ -85,7 +92,7 @@ export async function getVersions(data: Record<string, string>, prop: string): P
  * @param data - The data to write, which will be serialized as JSON.
  * @returns A promise that resolves to true if writing is successful, or rejects with an error message if it fails.
  */
-export function writeData(file: URLInput, data: any): Promise<void> {
+export function writeData(file: URLInput, data: object): Promise<void> {
 	return writeFile(toURL(file), `${JSON.stringify(data, null, '  ')}\n`)
 }
 
@@ -95,7 +102,7 @@ export function writeData(file: URLInput, data: any): Promise<void> {
  * @param file - The file URL or path from which to read JSON data.
  * @returns A promise that resolves to the parsed JSON data.
  */
-export async function loadJSON(file: URLInput): Promise<any> {
+export async function loadJSON<T extends JSONObject>(file: URLInput): Promise<T> {
 	const jsonBuf = await readFile(toURL(file))
-	return JSON.parse(jsonBuf.toString())
+	return JSON.parse(jsonBuf.toString()) as T
 }

@@ -1,14 +1,14 @@
 {
 	"name": "@tadashi/pkg-cli",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"license": "MIT",
 	"exports": {
 		".": "./src/mod.ts",
 		"./cli": "./src/cli.ts"
 	},
 	"imports": {
-		"@clack/prompts": "npm:@clack/prompts@0.8.2",
-		"find-up-simple": "npm:find-up-simple@1.0.0",
+		"@clack/prompts": "npm:@clack/prompts@0.10.1",
+		"find-up-simple": "npm:find-up-simple@1.0.1",
 		"kleur": "npm:kleur@4.1.5"
 	},
 	"publish": {

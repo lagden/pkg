@@ -3,13 +3,13 @@ import * as p from '@clack/prompts' // Import '@clack/prompts' for creating inte
 import color from 'kleur' // Import 'kleur' for terminal text coloring
 import { findUp } from 'find-up-simple' // Import 'findUp' to locate files in parent directories
 import { getVersions, loadJSON, writeData } from './lib.ts' // Import utility functions for JSON handling and version operations
-import { IPackageGroup, IPackageJSON } from './interfaces.ts' // Import TypeScript interface for type-safety of package.json data
+import type { IPackageGroupInfo, IPackageJSON, PackageAndVersion, PackageOptionsRecord } from './interfaces.ts' // Import TypeScript interface for type-safety of package.json data
 
 // Initialize a spinner to display loading status to the user
 const spin = p.spinner()
 
 // Function to handle operation cancellation
-function onCancel(msg: string = 'Operation cancelled.', code: number = 0): void {
+function onCancel(msg = 'Operation cancelled.', code = 0): void {
 	p.cancel(msg) // Display cancellation message
 	process.exit(code) // Exit process with given code
 }
@@ -17,18 +17,20 @@ function onCancel(msg: string = 'Operation cancelled.', code: number = 0): void 
 /**
  * Main function to run the CLI
  *
- * It is a command-line interface tool designed to help
+ * This is a command-line interface tool designed to help
  * developers manage their project dependencies more efficiently.
- * It scans your package.json file and checks for available updates
+ * It scans your `package.json` file and checks for available updates
  * to your npm packages, making it easy to keep your projects up-to-date
  * with the latest versions.
  *
+ * Example usage:
  * ```ts
  * import main from "jsr:@tadashi/pkg-cli";
  *
  * // Execute main function and handle errors
  * main().catch(console.error)
  * ```
+ *
  * @module
  */
 async function main(): Promise<void> {
@@ -54,13 +56,16 @@ async function main(): Promise<void> {
 
 	// Load JSON data from the located 'package.json' file
 	const pkgData: IPackageJSON = await loadJSON(pkgFile)
-	const options: Record<string, any> = {} // Prepare an object to store available version updates
 	const props = ['dependencies', 'devDependencies'] // Define properties to check for updates
-	const promises = props.map((prop) => pkgData[prop] ? getVersions(pkgData[prop], prop) : undefined).filter(Boolean)
+	const promises = props
+		.filter((prop) => pkgData[prop])
+		.map((prop) => getVersions(pkgData[prop] as PackageAndVersion, prop))
+
+	const options: PackageOptionsRecord = {} // Prepare an object to store available version updates
 
 	// Process each version check promise
 	for await (const result of promises) {
-		if (result?.data && Array.isArray(result.data) && result.data.length > 0) {
+		if (Array.isArray(result?.data) && result.data.length > 0) {
 			const { prop, data } = result
 			options[prop] = data // Store the version data in options
 		}
@@ -76,12 +81,12 @@ async function main(): Promise<void> {
 	}
 
 	// Prompt the user to select packages to update
-	const response: IPackageGroup = await p.group(
+	const response = await p.group(
 		{
 			packages: () =>
 				p.groupMultiselect({
 					message: 'Which packages would you like to update?',
-					options,
+					options: options,
 					required: false,
 				}),
 		},
@@ -91,16 +96,21 @@ async function main(): Promise<void> {
 	)
 
 	// Update selected packages in 'package.json'
-	if (response?.packages && Array.isArray(response.packages) && response.packages.length > 0) {
-		for (const { name, prop, version } of response.packages) {
-			pkgData[prop][name] = version // Update the package version
+	if (Array.isArray(response?.packages) && response.packages.length > 0) {
+		for (const { name, prop, version } of response.packages as IPackageGroupInfo[]) {
+			if (pkgData[prop] && typeof pkgData[prop] === 'object' && !Array.isArray(pkgData[prop])) {
+				pkgData[prop][name] = version // Update the package version
+			}
 		}
 
 		try {
 			await writeData(pkgFile, pkgData) // Write updated data back to 'package.json'
 			return p.outro(`File updated! ${color.underline(color.cyan(pkgFile))}`) // Notify user of update
-		} catch (error: any) {
-			return onCancel(error.message, 1) // Handle and display error if file write fails
+		} catch (error: unknown) {
+			if (error instanceof Error) {
+				return onCancel(error.message, 1) // Handle and display error if file write fails
+			}
+			return onCancel('An unknown error occurred.', 1) // Handle unknown error types
 		}
 	}
 

@@ -19,7 +19,7 @@ deno compile -WER --allow-run=/bin/sh -o ~/.deno/bin/pkg-cli jsr:@tadashi/pkg-cl
 
 > [!NOTE]\
 > Replace the `{version}` tag with the desired version.\
-> Example: `jsr:@tadashi/pkg-cli@1.0.4/cli`
+> Example: `jsr:@tadashi/pkg-cli@1.0.5/cli`
 
 ## Buy Me a Coffee
 
